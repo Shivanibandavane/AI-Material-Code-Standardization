@@ -1,0 +1,11 @@
+metric,value
+Total comparisons,1152.0
+True positives,354.0
+True negatives,594.0
+False positives,198.0
+False negatives,6.0
+Accuracy,0.8229
+Precision,0.6413
+Recall,0.9833
+F1 Score,0.7763
+High-confidence precision,0.8939
