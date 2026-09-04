@@ -1,61 +1,44 @@
 import pandas as pd
-import numpy as np
 import re
-
-from pathlib import Path
-from difflib import SequenceMatcher
-
 from sentence_transformers import SentenceTransformer
 from sklearn.metrics.pairwise import cosine_similarity
+from difflib import SequenceMatcher
 
+INPUT_FILE = "data/processed/cpse_materials_attributes.csv"
+OUTPUT_FILE = "data/processed/material_matches.csv"
 
-# ============================================================
-# CONFIGURATION
-# ============================================================
-
-INPUT_FILE = Path(
-    "data/processed/cpse_materials_attributes.csv"
-)
-
-OUTPUT_FILE = Path(
-    "data/processed/material_matches.csv"
-)
-
-print("=" * 75)
-print("AI MATERIAL CODE STANDARDIZATION")
-print("FULL CROSS-CPSE MATCHING ENGINE")
-print("=" * 75)
-
-
-# ============================================================
-# 1. LOAD DATA
-# ============================================================
-
-print("\n[1/8] Loading material dataset...")
+print("=" * 70)
+print("AI MATERIAL MATCHING ENGINE - V4")
+print("=" * 70)
 
 df = pd.read_csv(INPUT_FILE)
-
-print(f"Loaded {len(df)} material records.")
-print(f"CPSEs found: {df['cpse'].unique().tolist()}")
+print(f"\nLoaded records: {len(df)}")
 
 
-# ============================================================
-# 2. NORMALIZATION FUNCTIONS
-# ============================================================
-
-def normalize_material(value):
-
+def norm(value):
     if pd.isna(value):
         return ""
-
     value = str(value).lower().strip()
+    value = value.replace("×", "x").replace("–", "-").replace("—", "-")
+    value = re.sub(r"\s+", " ", value)
+    return value
 
-    replacements = {
+
+def material(value):
+    value = norm(value)
+
+    mapping = {
         "ss": "stainless steel",
         "stainless": "stainless steel",
         "ms": "mild steel",
+        "mild": "mild steel",
         "cs": "carbon steel",
+        "carbon": "carbon steel",
         "gi": "galvanized steel",
+        "galvanized iron": "galvanized steel",
+        "galvanised iron": "galvanized steel",
+        "galvanised": "galvanized steel",
+        "galvanized": "galvanized steel",
         "cu": "copper",
         "al": "aluminium",
         "aluminum": "aluminium",
@@ -63,175 +46,128 @@ def normalize_material(value):
         "di": "ductile iron"
     }
 
-    for old, new in replacements.items():
+    for old, new in sorted(mapping.items(), key=lambda x: len(x[0]), reverse=True):
+        value = re.sub(rf"\b{re.escape(old)}\b", new, value)
 
-        if value == old:
-            value = new
-
-    return value
+    return re.sub(r"\s+", " ", value).strip()
 
 
-def normalize_size(value):
+def size(value):
+    value = norm(value)
 
-    if pd.isna(value):
-        return ""
+    value = re.sub(r"\bdn\s*(\d+)\b", r"\1 nb", value)
+    value = re.sub(r"\b(\d+)\s*nb\b", r"\1 nb", value)
 
-    value = str(value).lower().strip()
+    value = re.sub(
+        r"\bm\s*(\d+)\s*[-x]\s*(\d+)\b",
+        r"\1 x \2",
+        value
+    )
 
-    value = re.sub(r"\bm(\d+)", r"\1", value)
+    value = re.sub(
+        r"\b(\d+(?:\.\d+)?)\s*mm\s*x\s*(\d+(?:\.\d+)?)\s*mm\b",
+        r"\1 x \2",
+        value
+    )
 
-    value = value.replace("-", " x ")
-    value = value.replace("×", " x ")
-
-    value = re.sub(r"\s*x\s*", " x ", value)
+    value = re.sub(r"\bsquare\s*mm\b", "mm2", value)
+    value = re.sub(r"\bsq\s*mm\b", "mm2", value)
+    value = re.sub(r"\bsqmm\b", "mm2", value)
 
     value = re.sub(r"\s+", " ", value)
 
     return value.strip()
 
 
-def normalize_grade(value):
+def grade(value):
+    value = norm(value)
 
-    if pd.isna(value):
-        return ""
+    value = re.sub(r"\bschedule\s*(\d+)\b", r"sch\1", value)
+    value = re.sub(r"\bsch\s*(\d+)\b", r"sch\1", value)
 
-    value = str(value).lower().strip()
+    value = re.sub(r"\bclass\s*(\d+)\b", r"cl\1", value)
+    value = re.sub(r"\bcl\s*(\d+)\b", r"cl\1", value)
 
-    value = value.replace(" ", "")
-    value = value.replace("-", "")
+    value = re.sub(r"\bep\s*-\s*(\d+)\b", r"ep\1", value)
+    value = re.sub(r"\bep\s*(\d+)\b", r"ep\1", value)
 
-    value = value.replace("ss", "")
+    value = re.sub(r"\s+", " ", value)
 
-    return value
-
-
-def normalize_category(value):
-
-    if pd.isna(value):
-        return ""
-
-    return str(value).lower().strip()
+    return value.strip()
 
 
-# ============================================================
-# 3. NORMALIZE ATTRIBUTES
-# ============================================================
+def unit(value):
+    value = norm(value)
 
-print("\n[2/8] Normalizing material attributes...")
+    mapping = {
+        "meter": "m",
+        "metre": "m",
+        "mtr": "m",
+        "mtrs": "m",
+        "litre": "l",
+        "liter": "l",
+        "ltr": "l",
+        "lt": "l",
+        "number": "nos",
+        "no": "nos",
+        "nos": "nos",
+        "ea": "nos",
+        "each": "nos"
+    }
 
-df["material_normalized"] = (
-    df["extracted_material"]
-    .apply(normalize_material)
-)
-
-df["size_normalized"] = (
-    df["extracted_size"]
-    .apply(normalize_size)
-)
-
-df["grade_normalized"] = (
-    df["extracted_grade"]
-    .apply(normalize_grade)
-)
-
-df["category_normalized"] = (
-    df["category"]
-    .apply(normalize_category)
-)
-
-print("Attribute normalization completed.")
+    return mapping.get(value, value)
 
 
-# ============================================================
-# 4. LOAD AI MODEL
-# ============================================================
-
-print("\n[3/8] Loading AI embedding model...")
-
-model = SentenceTransformer(
-    "all-MiniLM-L6-v2"
-)
-
-print("AI model loaded successfully.")
+df["norm_category"] = df["category"].apply(norm)
+df["norm_material"] = df["material"].apply(material)
+df["norm_size"] = df["size"].apply(size)
+df["norm_grade"] = df["grade"].apply(grade)
+df["norm_unit"] = df["unit"].apply(unit)
 
 
-# ============================================================
-# 5. CREATE EMBEDDINGS
-# ============================================================
+def description(row):
+    return " ".join([
+        row["norm_category"],
+        row["norm_material"],
+        row["norm_size"],
+        row["norm_grade"]
+    ])
 
-print("\n[4/8] Creating semantic embeddings...")
 
-descriptions = (
-    df["material_description_clean"]
-    .fillna("")
-    .tolist()
-)
+df["normalized_description"] = df.apply(description, axis=1)
 
+
+print("\nLoading semantic model...")
+model = SentenceTransformer("all-MiniLM-L6-v2")
+
+print("Creating embeddings...")
 embeddings = model.encode(
-    descriptions,
+    df["normalized_description"].tolist(),
     show_progress_bar=True
 )
 
-print(
-    f"Embedding shape: {embeddings.shape}"
-)
+print(f"Embedding shape: {embeddings.shape}")
 
 
-# ============================================================
-# 6. SIMILARITY FUNCTIONS
-# ============================================================
+def lexical(a, b):
+    return SequenceMatcher(None, str(a), str(b)).ratio()
 
-def attribute_similarity(row1, row2):
+
+def attribute_score(a, b):
 
     scores = []
 
-    # Category
-    if (
-        row1["category_normalized"]
-        and row2["category_normalized"]
-    ):
-        scores.append(
-            1.0
-            if row1["category_normalized"]
-            == row2["category_normalized"]
-            else 0.0
-        )
+    for column in [
+        "norm_material",
+        "norm_size",
+        "norm_grade"
+    ]:
 
-    # Material
-    if (
-        row1["material_normalized"]
-        and row2["material_normalized"]
-    ):
-        scores.append(
-            1.0
-            if row1["material_normalized"]
-            == row2["material_normalized"]
-            else 0.0
-        )
+        x = a[column]
+        y = b[column]
 
-    # Size
-    if (
-        row1["size_normalized"]
-        and row2["size_normalized"]
-    ):
-        scores.append(
-            1.0
-            if row1["size_normalized"]
-            == row2["size_normalized"]
-            else 0.0
-        )
-
-    # Grade
-    if (
-        row1["grade_normalized"]
-        and row2["grade_normalized"]
-    ):
-        scores.append(
-            1.0
-            if row1["grade_normalized"]
-            == row2["grade_normalized"]
-            else 0.0
-        )
+        if x and y:
+            scores.append(1.0 if x == y else 0.0)
 
     if not scores:
         return 0.0
@@ -239,301 +175,204 @@ def attribute_similarity(row1, row2):
     return sum(scores) / len(scores)
 
 
-def lexical_similarity(text1, text2):
+def specification_conflicts(a, b):
 
-    text1 = str(text1).lower()
-    text2 = str(text2).lower()
+    conflicts = []
 
-    return SequenceMatcher(
-        None,
-        text1,
-        text2
-    ).ratio()
+    # Category
+    if a["norm_category"] != b["norm_category"]:
+        conflicts.append("category")
+
+    # Material
+    if (
+        a["norm_material"]
+        and b["norm_material"]
+        and a["norm_material"] != b["norm_material"]
+    ):
+        conflicts.append("material")
+
+    # Size
+    if (
+        a["norm_size"]
+        and b["norm_size"]
+        and a["norm_size"] != b["norm_size"]
+    ):
+        conflicts.append("size")
+
+    # Grade
+    if (
+        a["norm_grade"]
+        and b["norm_grade"]
+        and a["norm_grade"] != b["norm_grade"]
+    ):
+        conflicts.append("grade/specification")
+
+    return conflicts
 
 
-def get_decision(score):
+def confidence(score, conflicts, attribute):
 
-    if score >= 0.80:
-        return "HIGH CONFIDENCE"
-
-    elif score >= 0.65:
-        return "REVIEW REQUIRED"
-
-    else:
+    if "category" in conflicts:
         return "LOW CONFIDENCE"
 
+    # Strong specifications must agree
+    if len(conflicts) >= 2:
+        return "LOW CONFIDENCE"
 
-def generate_reason(
-    row1,
-    row2,
-    semantic_score,
-    attribute_score,
-    lexical_score
-):
+    # If material + size/specification information exists,
+    # require reasonable attribute agreement.
+    if len(conflicts) == 1 and attribute < 0.50:
+        return "REVIEW REQUIRED"
 
-    reasons = []
+    if score >= 0.82:
+        return "HIGH CONFIDENCE"
 
-    if (
-        row1["category_normalized"]
-        == row2["category_normalized"]
-        and row1["category_normalized"]
-    ):
-        reasons.append("Same category")
+    if score >= 0.65:
+        return "REVIEW REQUIRED"
 
-    if (
-        row1["material_normalized"]
-        == row2["material_normalized"]
-        and row1["material_normalized"]
-    ):
-        reasons.append("Same material")
+    return "LOW CONFIDENCE"
 
-    if (
-        row1["size_normalized"]
-        == row2["size_normalized"]
-        and row1["size_normalized"]
-    ):
-        reasons.append("Same size")
-
-    if (
-        row1["grade_normalized"]
-        == row2["grade_normalized"]
-        and row1["grade_normalized"]
-    ):
-        reasons.append("Same grade")
-
-    if semantic_score >= 0.70:
-        reasons.append("Strong semantic similarity")
-
-    elif semantic_score >= 0.50:
-        reasons.append("Moderate semantic similarity")
-
-    if lexical_score >= 0.70:
-        reasons.append("Similar wording")
-
-    if not reasons:
-        reasons.append("Limited similarity")
-
-    return "; ".join(reasons)
-
-
-# ============================================================
-# 7. GENERATE CROSS-CPSE MATCHES
-# ============================================================
-
-print("\n[5/8] Generating cross-CPSE material matches...")
 
 results = []
 
-total_comparisons = 0
+print("\nGenerating cross-CPSE matches...")
 
 for i in range(len(df)):
 
-    row1 = df.iloc[i]
+    for j in range(i + 1, len(df)):
 
-    for j in range(len(df)):
+        a = df.iloc[i]
+        b = df.iloc[j]
 
-        row2 = df.iloc[j]
-
-        # Do not compare a material with itself
-        if i == j:
+        # Different CPSEs only
+        if a["cpse"] == b["cpse"]:
             continue
 
-        # Only compare materials belonging to different CPSEs
-        if row1["cpse"] == row2["cpse"]:
+        # Same category only
+        if a["norm_category"] != b["norm_category"]:
             continue
 
-        # Candidate filtering:
-        # Materials from different categories are less likely
-        # to represent the same material.
-        if (
-            row1["category_normalized"]
-            != row2["category_normalized"]
-        ):
-            continue
-
-        total_comparisons += 1
-
-        # Semantic similarity
         semantic_score = cosine_similarity(
             [embeddings[i]],
             [embeddings[j]]
         )[0][0]
 
-        # Attribute similarity
-        attribute_score = attribute_similarity(
-            row1,
-            row2
+        attr_score = attribute_score(a, b)
+
+        lexical_score = lexical(
+            a["normalized_description"],
+            b["normalized_description"]
         )
 
-        # Lexical similarity
-        lexical_score = lexical_similarity(
-            row1["material_description_clean"],
-            row2["material_description_clean"]
-        )
+        conflicts = specification_conflicts(a, b)
 
         # Hybrid score
-        combined_score = (
+        hybrid = (
             0.50 * semantic_score
-            + 0.35 * attribute_score
+            + 0.35 * attr_score
             + 0.15 * lexical_score
         )
 
-        decision = get_decision(
-            combined_score
+        # Only genuine specification conflicts receive penalties.
+        if len(conflicts) == 1:
+            hybrid -= 0.05
+
+        elif len(conflicts) >= 2:
+            hybrid -= 0.15
+
+        hybrid = max(0.0, min(1.0, hybrid))
+
+        conf = confidence(
+            hybrid,
+            conflicts,
+            attr_score
         )
 
-        reason = generate_reason(
-            row1,
-            row2,
-            semantic_score,
-            attribute_score,
-            lexical_score
-        )
+        if conflicts:
+            explanation = (
+                f"Semantic={semantic_score:.3f}, "
+                f"Attribute={attr_score:.3f}, "
+                f"Lexical={lexical_score:.3f}. "
+                f"Potential difference: {', '.join(conflicts)}."
+            )
+        else:
+            explanation = (
+                f"Strong agreement across semantic, "
+                f"material, size and specification signals. "
+                f"Semantic={semantic_score:.3f}, "
+                f"Attribute={attr_score:.3f}, "
+                f"Lexical={lexical_score:.3f}."
+            )
 
         results.append({
 
-            "cpse_1":
-                row1["cpse"],
+            "cpse_1": a["cpse"],
+            "material_code_1": a["material_code"],
+            "material_description_1": a["material_description"],
 
-            "material_code_1":
-                row1["material_code"],
+            "cpse_2": b["cpse"],
+            "material_code_2": b["material_code"],
+            "material_description_2": b["material_description"],
 
-            "description_1":
-                row1["material_description"],
+            "category": a["category"],
 
-            "cpse_2":
-                row2["cpse"],
+            "semantic_score": round(semantic_score, 4),
+            "attribute_score": round(attr_score, 4),
+            "lexical_score": round(lexical_score, 4),
+            "hybrid_score": round(hybrid, 4),
 
-            "material_code_2":
-                row2["material_code"],
+            "confidence": conf,
 
-            "description_2":
-                row2["material_description"],
+            "conflicts": ", ".join(conflicts)
+            if conflicts else "None",
 
-            "category":
-                row1["category"],
+            "explanation": explanation,
 
-            "semantic_score":
-                round(
-                    semantic_score,
-                    4
-                ),
-
-            "attribute_score":
-                round(
-                    attribute_score,
-                    4
-                ),
-
-            "lexical_score":
-                round(
-                    lexical_score,
-                    4
-                ),
-
-            "combined_score":
-                round(
-                    combined_score,
-                    4
-                ),
-
-            "decision":
-                decision,
-
-            "reason":
-                reason,
-
-            # Ground truth is stored ONLY for evaluation.
-            # It is NOT used by the AI for prediction.
+            # Ground truth ONLY for evaluation
             "same_benchmark_group":
-                row1["benchmark_group_id"]
-                == row2["benchmark_group_id"]
+                a["benchmark_group_id"] ==
+                b["benchmark_group_id"]
         })
 
 
-print(
-    f"Total cross-CPSE comparisons: "
-    f"{total_comparisons}"
-)
+matches = pd.DataFrame(results)
 
-
-# ============================================================
-# 8. SAVE RESULTS
-# ============================================================
-
-print("\n[6/8] Creating results dataframe...")
-
-results_df = pd.DataFrame(results)
-
-# Sort best matches first
-results_df = results_df.sort_values(
-    by="combined_score",
+matches = matches.sort_values(
+    "hybrid_score",
     ascending=False
 )
 
-results_df = results_df.reset_index(
-    drop=True
-)
-
-print(
-    f"Generated {len(results_df)} match records."
-)
-
-
-print("\n[7/8] Saving match results...")
-
-results_df.to_csv(
+matches.to_csv(
     OUTPUT_FILE,
     index=False
 )
 
-print(
-    f"Saved results to:\n{OUTPUT_FILE}"
-)
 
+print("\n" + "=" * 70)
+print("MATCHING V4 COMPLETE")
+print("=" * 70)
 
-# ============================================================
-# SUMMARY
-# ============================================================
+print(f"\nTotal comparisons: {len(matches)}")
 
-print("\n[8/8] MATCHING SUMMARY")
+print("\nConfidence distribution:")
+print(matches["confidence"].value_counts())
 
-print("=" * 75)
-
-print(
-    "\nConfidence distribution:"
-)
+print("\nTop 10 matches:")
 
 print(
-    results_df["decision"]
-    .value_counts()
+    matches[
+        [
+            "cpse_1",
+            "material_description_1",
+            "cpse_2",
+            "material_description_2",
+            "hybrid_score",
+            "confidence"
+        ]
+    ].head(10).to_string(index=False)
 )
 
+print("\nResults saved to:")
+print(OUTPUT_FILE)
 
-print(
-    "\nTop 10 AI-generated matches:"
-)
-
-display_columns = [
-    "cpse_1",
-    "material_code_1",
-    "description_1",
-    "cpse_2",
-    "material_code_2",
-    "description_2",
-    "combined_score",
-    "decision"
-]
-
-print(
-    results_df[
-        display_columns
-    ].head(10).to_string(
-        index=False
-    )
-)
-
-
-print("\n" + "=" * 75)
-print("FULL MATCHING ENGINE COMPLETED")
-print("=" * 75)
+print("\nDone!")
