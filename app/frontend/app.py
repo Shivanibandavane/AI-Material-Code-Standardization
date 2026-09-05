@@ -4,9 +4,8 @@ import plotly.express as px
 from pathlib import Path
 from datetime import datetime
 
-
 # ============================================================
-# PAGE CONFIGURATION
+# PAGE CONFIG
 # ============================================================
 
 st.set_page_config(
@@ -16,255 +15,119 @@ st.set_page_config(
     initial_sidebar_state="expanded"
 )
 
+# ============================================================
+# PATHS
+# ============================================================
+
+ROOT = Path(__file__).resolve().parents[2]
+
+ATTRIBUTES_FILE = ROOT / "data" / "processed" / "cpse_materials_attributes.csv"
+MATCHES_FILE = ROOT / "data" / "processed" / "material_matches.csv"
+MASTER_FILE = ROOT / "data" / "processed" / "harmonized_material_master.csv"
+REVIEW_FILE = ROOT / "data" / "processed" / "human_review_decisions.csv"
 
 # ============================================================
-# CUSTOM CSS
+# CSS
 # ============================================================
 
 st.markdown("""
 <style>
-
-@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap');
-
-html, body, [class*="css"] {
-    font-family: 'Inter', sans-serif;
-}
-
 .stApp {
-    background: #F7F9FC;
+    background-color: #f5f7fb;
 }
 
-/* Main container */
 .block-container {
+    max-width: 1450px;
     padding-top: 1.5rem;
     padding-bottom: 3rem;
-    max-width: 1450px;
 }
 
-/* Sidebar */
-section[data-testid="stSidebar"] {
-    background: #FFFFFF;
-    border-right: 1px solid #E6EAF0;
-}
-
-section[data-testid="stSidebar"] .block-container {
-    padding-top: 2rem;
-}
-
-/* Header */
-.hero {
-    background: linear-gradient(
-        135deg,
-        #FFFFFF 0%,
-        #F3F7FF 100%
-    );
-    border: 1px solid #E3EAF5;
-    border-radius: 18px;
-    padding: 28px 32px;
-    margin-bottom: 24px;
-    box-shadow: 0 5px 20px rgba(31, 52, 85, 0.05);
-}
-
-.hero-title {
-    font-size: 30px;
-    font-weight: 700;
+h1, h2, h3 {
     color: #172033;
-    margin-bottom: 5px;
 }
 
-.hero-subtitle {
+.main-title {
+    font-size: 36px;
+    font-weight: 800;
+    color: #312e81;
+}
+
+.subtitle {
+    color: #64748b;
     font-size: 15px;
-    color: #667085;
+    margin-bottom: 25px;
+}
+
+.hero {
+    padding: 30px;
+    border-radius: 20px;
+    background: linear-gradient(135deg, #312e81, #4f46e5, #7c3aed);
+    color: white;
+    margin-bottom: 25px;
+}
+
+.hero h1 {
+    color: white;
+    font-size: 36px;
+    margin-bottom: 10px;
+}
+
+.hero p {
+    color: #e0e7ff;
+    font-size: 15px;
     line-height: 1.6;
 }
 
-.badge {
-    display: inline-block;
-    padding: 6px 12px;
-    border-radius: 20px;
-    background: #EAF2FF;
-    color: #315EA8;
-    font-size: 12px;
-    font-weight: 600;
-    margin-bottom: 12px;
+.kpi-card {
+    background: white;
+    padding: 20px;
+    border-radius: 16px;
+    border: 1px solid #e5e7eb;
+    box-shadow: 0 4px 15px rgba(0,0,0,0.04);
 }
 
-/* KPI cards */
-.kpi {
-    background: #FFFFFF;
-    border: 1px solid #E6EAF0;
-    border-radius: 16px;
-    padding: 20px;
-    min-height: 130px;
-    box-shadow: 0 4px 16px rgba(31, 52, 85, 0.04);
+.kpi-number {
+    font-size: 30px;
+    font-weight: 800;
+    color: #4f46e5;
 }
 
 .kpi-label {
-    color: #667085;
-    font-size: 13px;
-    font-weight: 500;
-}
-
-.kpi-value {
-    color: #172033;
-    font-size: 28px;
-    font-weight: 700;
-    margin-top: 8px;
-}
-
-.kpi-description {
-    color: #98A2B3;
-    font-size: 12px;
-    margin-top: 5px;
-}
-
-/* Section titles */
-.section-title {
-    font-size: 21px;
-    font-weight: 700;
-    color: #172033;
-    margin-top: 28px;
-    margin-bottom: 5px;
-}
-
-.section-subtitle {
-    font-size: 13px;
-    color: #667085;
-    margin-bottom: 18px;
-}
-
-/* Cards */
-.card {
-    background: #FFFFFF;
-    border: 1px solid #E6EAF0;
-    border-radius: 16px;
-    padding: 22px;
-    box-shadow: 0 4px 16px rgba(31, 52, 85, 0.04);
-    margin-bottom: 16px;
-}
-
-.card-title {
-    font-size: 16px;
-    font-weight: 600;
-    color: #172033;
-    margin-bottom: 8px;
-}
-
-.card-text {
-    font-size: 13px;
-    color: #667085;
-    line-height: 1.6;
-}
-
-/* Status */
-.status-high {
-    background: #ECFDF3;
-    color: #087443;
-    border: 1px solid #ABEFC6;
-    padding: 6px 12px;
-    border-radius: 20px;
+    color: #64748b;
     font-size: 12px;
     font-weight: 600;
-}
-
-.status-review {
-    background: #FFFAEB;
-    color: #B54708;
-    border: 1px solid #FEDF89;
-    padding: 6px 12px;
-    border-radius: 20px;
-    font-size: 12px;
-    font-weight: 600;
-}
-
-.status-low {
-    background: #FEF3F2;
-    color: #B42318;
-    border: 1px solid #FECDCA;
-    padding: 6px 12px;
-    border-radius: 20px;
-    font-size: 12px;
-    font-weight: 600;
-}
-
-/* AI explanation */
-.ai-box {
-    background: #F5F8FF;
-    border: 1px solid #DCE7FF;
-    border-radius: 14px;
-    padding: 18px;
-    margin-top: 12px;
-}
-
-.ai-title {
-    color: #315EA8;
-    font-weight: 600;
-    font-size: 14px;
-    margin-bottom: 6px;
-}
-
-.ai-text {
-    color: #526071;
-    font-size: 13px;
-    line-height: 1.6;
-}
-
-/* Review card */
-.review-card {
-    background: #FFFFFF;
-    border: 1px solid #E3E8EF;
-    border-radius: 18px;
-    padding: 24px;
-    box-shadow: 0 6px 22px rgba(31, 52, 85, 0.06);
-}
-
-/* Small label */
-.small-label {
-    font-size: 11px;
-    color: #98A2B3;
     text-transform: uppercase;
-    letter-spacing: 0.5px;
 }
 
-.small-value {
-    font-size: 14px;
-    color: #172033;
-    font-weight: 600;
+.section-card {
+    background: white;
+    padding: 20px;
+    border-radius: 16px;
+    border: 1px solid #e5e7eb;
+    margin-bottom: 20px;
 }
 
-/* Footer */
-.footer {
-    text-align: center;
-    color: #98A2B3;
-    font-size: 12px;
-    padding: 30px 0 10px 0;
-}
-
-/* Buttons */
-.stButton > button {
+.status {
+    padding: 10px;
     border-radius: 10px;
+    background-color: #ecfdf5;
+    color: #047857;
+    margin-bottom: 8px;
+    font-size: 13px;
     font-weight: 600;
-    min-height: 42px;
 }
 
-/* Dataframe */
-[data-testid="stDataFrame"] {
-    border-radius: 12px;
+.code {
+    background-color: #eef2ff;
+    color: #3730a3;
+    padding: 5px 9px;
+    border-radius: 7px;
+    font-family: monospace;
+    font-weight: 700;
 }
 
 </style>
 """, unsafe_allow_html=True)
-
-
-# ============================================================
-# FILE PATHS
-# ============================================================
-
-MATERIAL_FILE = "data/processed/cpse_materials_attributes.csv"
-MATCH_FILE = "data/processed/material_matches.csv"
-MASTER_FILE = "data/processed/harmonized_material_master.csv"
-REVIEW_FILE = "data/processed/human_review_decisions.csv"
-
 
 # ============================================================
 # LOAD DATA
@@ -273,118 +136,30 @@ REVIEW_FILE = "data/processed/human_review_decisions.csv"
 @st.cache_data
 def load_data():
 
-    materials = pd.read_csv(MATERIAL_FILE)
-    matches = pd.read_csv(MATCH_FILE)
+    attributes = pd.read_csv(ATTRIBUTES_FILE)
+    matches = pd.read_csv(MATCHES_FILE)
     master = pd.read_csv(MASTER_FILE)
     review = pd.read_csv(REVIEW_FILE)
 
-    return materials, matches, master, review
+    return attributes, matches, master, review
 
 
 try:
-
-    materials_df, matches_df, master_df, review_df = load_data()
+    attributes_df, matches_df, master_df, review_df = load_data()
 
 except Exception as e:
 
     st.error("Unable to load project data.")
-
-    st.code(str(e))
-
+    st.exception(e)
     st.stop()
 
-
 # ============================================================
-# HEADER
-# ============================================================
-
-st.markdown("""
-<div class="hero">
-
-<div class="badge">
-AI-POWERED PROCUREMENT INTELLIGENCE
-</div>
-
-<div class="hero-title">
-CPSE Material Intelligence Platform
-</div>
-
-<div class="hero-subtitle">
-AI-driven standardization and harmonization of material codes
-across Central Public Sector Enterprises.
-<br>
-Transforming fragmented material masters into a unified,
-explainable and reviewable procurement intelligence layer.
-</div>
-
-</div>
-""", unsafe_allow_html=True)
-
-
-# ============================================================
-# SIDEBAR
+# STATISTICS
 # ============================================================
 
-with st.sidebar:
-
-    st.markdown(
-        """
-        <div style="font-size:22px;font-weight:700;color:#172033;">
-        Material Intelligence
-        </div>
-        <div style="font-size:12px;color:#98A2B3;margin-top:4px;">
-        CPSE Standardization Platform
-        </div>
-        """,
-        unsafe_allow_html=True
-    )
-
-    st.divider()
-
-    st.markdown("### Navigation")
-
-    page = st.radio(
-        "",
-        [
-            "📊 Overview",
-            "🔍 AI Matching",
-            "🧩 Harmonization",
-            "👤 Human Review",
-            "📥 Export"
-        ]
-    )
-
-    st.divider()
-
-    st.markdown("### System Status")
-
-    st.success("AI Matching Engine Online")
-    st.success("Harmonization Engine Online")
-    st.info("Human Review Enabled")
-
-    st.divider()
-
-    st.caption(
-        "Prototype • SIH 2026\n\n"
-        "AI recommendations require human validation."
-    )
-
-
-# ============================================================
-# COMMON STATISTICS
-# ============================================================
-
-total_materials = len(materials_df)
-
+total_materials = len(attributes_df)
 total_matches = len(matches_df)
-
 total_groups = len(master_df)
-
-review_groups = len(
-    master_df[
-        master_df["source_material_count"] > 1
-    ]
-)
 
 high_matches = len(
     matches_df[
@@ -404,833 +179,916 @@ low_matches = len(
     ]
 )
 
+if "source_material_count" in master_df.columns:
+
+    review_groups = len(
+        master_df[
+            master_df["source_material_count"] > 1
+        ]
+    )
+
+else:
+
+    review_groups = 0
+
+
+pending_reviews = len(
+    review_df[
+        review_df["human_decision"] == "PENDING"
+    ]
+)
+
+approved_reviews = len(
+    review_df[
+        review_df["human_decision"] == "APPROVED"
+    ]
+)
+
+rejected_reviews = len(
+    review_df[
+        review_df["human_decision"] == "REJECTED"
+    ]
+)
+
+cpse_count = attributes_df["cpse"].nunique()
+category_count = attributes_df["category"].nunique()
 
 # ============================================================
-# OVERVIEW PAGE
+# SIDEBAR
 # ============================================================
 
-if page == "📊 Overview":
+with st.sidebar:
+
+    st.title("🏭 Material Intelligence")
+
+    st.caption(
+        "CPSE Standardization Platform"
+    )
+
+    st.divider()
+
+    st.subheader("WORKSPACE")
+
+    page = st.radio(
+        "Select Module",
+        [
+            "Overview",
+            "AI Matching",
+            "Harmonization",
+            "Human Review",
+            "Export"
+        ]
+    )
+
+    st.divider()
+
+    st.subheader("SYSTEM STATUS")
 
     st.markdown(
-        '<div class="section-title">System Overview</div>',
+        '<div class="status">✅ Matching Engine Online</div>',
         unsafe_allow_html=True
     )
 
     st.markdown(
-        '<div class="section-subtitle">'
-        'A high-level view of the material standardization pipeline.'
-        '</div>',
+        '<div class="status">✅ Harmonization Engine Online</div>',
         unsafe_allow_html=True
     )
 
-    # KPI cards
+    st.markdown(
+        '<div class="status">👤 Human Review Enabled</div>',
+        unsafe_allow_html=True
+    )
+
+    st.divider()
+
+    st.caption(
+        f"📦 {total_materials} source materials"
+    )
+
+    st.caption(
+        f"🏢 {cpse_count} CPSE organizations"
+    )
+
+    st.caption(
+        f"🏷️ {category_count} categories"
+    )
+
+    st.caption(
+        "SIH 2026 Prototype"
+    )
+
+# ============================================================
+# TOP HEADER
+# ============================================================
+
+top1, top2 = st.columns([4, 1])
+
+with top1:
+
+    st.caption(
+        "CPSE MATERIAL INTELLIGENCE / STANDARDIZATION WORKSPACE"
+    )
+
+with top2:
+
+    st.caption(
+        datetime.now().strftime("%d %b %Y")
+    )
+
+st.divider()
+
+# ============================================================
+# OVERVIEW
+# ============================================================
+
+if page == "Overview":
+
+    st.markdown(
+        """
+        <div class="hero">
+            <h1>CPSE Material Intelligence Platform</h1>
+            <p>
+            AI-assisted standardization and harmonization of
+            material codes across Central Public Sector Enterprises.
+            </p>
+            <p>
+            Semantic Matching • Attribute Analysis • Conflict Detection
+            • Harmonization • Human-in-the-Loop
+            </p>
+        </div>
+        """,
+        unsafe_allow_html=True
+    )
+
+    st.subheader("Platform Overview")
 
     c1, c2, c3, c4 = st.columns(4)
 
     with c1:
 
-        st.markdown(
-            f"""
-            <div class="kpi">
-                <div class="kpi-label">Source Materials</div>
-                <div class="kpi-value">{total_materials}</div>
-                <div class="kpi-description">
-                    Materials across CPSE datasets
-                </div>
-            </div>
-            """,
-            unsafe_allow_html=True
+        st.metric(
+            "Source Materials",
+            total_materials
         )
 
     with c2:
 
-        st.markdown(
-            f"""
-            <div class="kpi">
-                <div class="kpi-label">AI Comparisons</div>
-                <div class="kpi-value">{total_matches}</div>
-                <div class="kpi-description">
-                    Cross-CPSE comparisons evaluated
-                </div>
-            </div>
-            """,
-            unsafe_allow_html=True
+        st.metric(
+            "AI Comparisons",
+            total_matches
         )
 
     with c3:
 
-        st.markdown(
-            f"""
-            <div class="kpi">
-                <div class="kpi-label">Canonical Groups</div>
-                <div class="kpi-value">{total_groups}</div>
-                <div class="kpi-description">
-                    Prototype standardized groups
-                </div>
-            </div>
-            """,
-            unsafe_allow_html=True
+        st.metric(
+            "Canonical Groups",
+            total_groups
         )
 
     with c4:
 
-        st.markdown(
-            f"""
-            <div class="kpi">
-                <div class="kpi-label">Human Review</div>
-                <div class="kpi-value">{review_groups}</div>
-                <div class="kpi-description">
-                    Groups requiring validation
-                </div>
-            </div>
-            """,
-            unsafe_allow_html=True
+        st.metric(
+            "Review Queue",
+            pending_reviews
         )
 
+    st.write("")
 
-    # --------------------------------------------------------
-    # Charts
-    # --------------------------------------------------------
+    left, right = st.columns(2)
 
-    st.markdown(
-        '<div class="section-title">AI Matching Intelligence</div>',
-        unsafe_allow_html=True
-    )
+    with left:
 
-    chart1, chart2 = st.columns(2)
-
-    with chart1:
-
-        confidence_counts = (
-            matches_df["confidence"]
-            .value_counts()
-            .reset_index()
+        st.subheader(
+            "AI Confidence Distribution"
         )
 
-        confidence_counts.columns = [
-            "Confidence",
-            "Count"
-        ]
+        confidence_df = pd.DataFrame(
+            {
+                "Confidence": [
+                    "HIGH CONFIDENCE",
+                    "REVIEW REQUIRED",
+                    "LOW CONFIDENCE"
+                ],
+                "Matches": [
+                    high_matches,
+                    review_matches,
+                    low_matches
+                ]
+            }
+        )
 
         fig = px.bar(
-            confidence_counts,
+            confidence_df,
             x="Confidence",
-            y="Count",
-            title="AI Match Confidence Distribution",
-            text="Count"
+            y="Matches",
+            text="Matches"
         )
 
         fig.update_layout(
-            template="simple_white",
-            font=dict(
-                family="Inter"
-            ),
             height=350,
             margin=dict(
-                l=20,
-                r=20,
-                t=60,
-                b=20
+                l=10,
+                r=10,
+                t=30,
+                b=10
             )
         )
 
         st.plotly_chart(
             fig,
-            use_container_width=True
+            width="stretch"
         )
 
-    with chart2:
+    with right:
 
-        category_counts = (
-            materials_df["category"]
+        st.subheader(
+            "Material Categories"
+        )
+
+        category_df = (
+            attributes_df[
+                "category"
+            ]
             .value_counts()
             .reset_index()
         )
 
-        category_counts.columns = [
+        category_df.columns = [
             "Category",
-            "Count"
+            "Materials"
         ]
 
         fig2 = px.bar(
-            category_counts,
-            x="Count",
-            y="Category",
-            orientation="h",
-            title="Materials by Category"
+            category_df,
+            x="Category",
+            y="Materials",
+            text="Materials"
         )
 
         fig2.update_layout(
-            template="simple_white",
-            font=dict(
-                family="Inter"
-            ),
             height=350,
             margin=dict(
-                l=20,
-                r=20,
-                t=60,
-                b=20
+                l=10,
+                r=10,
+                t=30,
+                b=10
             )
         )
 
         st.plotly_chart(
             fig2,
-            use_container_width=True
+            width="stretch"
         )
 
-
-    # --------------------------------------------------------
-    # AI architecture
-    # --------------------------------------------------------
-
-    st.markdown(
-        '<div class="section-title">How the AI Pipeline Works</div>',
-        unsafe_allow_html=True
+    st.subheader(
+        "End-to-End Processing Pipeline"
     )
 
-    st.markdown("""
-    <div class="card">
+    p1, p2, p3, p4, p5, p6 = st.columns(6)
 
-    <div class="card-title">
-    🔄 Hybrid Material Matching Pipeline
-    </div>
+    with p1:
+        st.info("01\n\n📁 Upload")
 
-    <div class="card-text">
+    with p2:
+        st.info("02\n\n🧹 Clean")
 
-    <b>1. Data Cleaning</b> → Standardizes descriptions and terminology.
+    with p3:
+        st.info("03\n\n🤖 Match")
 
-    <br><br>
+    with p4:
+        st.info("04\n\n🧩 Harmonize")
 
-    <b>2. Attribute Extraction</b> → Identifies material, size, grade and other specifications.
+    with p5:
+        st.warning("05\n\n👤 Review")
 
-    <br><br>
-
-    <b>3. Semantic Matching</b> → Uses AI embeddings to understand similar descriptions.
-
-    <br><br>
-
-    <b>4. Hybrid Scoring</b> → Combines semantic, attribute and lexical similarity.
-
-    <br><br>
-
-    <b>5. Conflict Detection</b> → Detects specification differences before harmonization.
-
-    <br><br>
-
-    <b>6. Harmonization</b> → Creates prototype canonical material groups.
-
-    <br><br>
-
-    <b>7. Human Validation</b> → Procurement experts approve or reject AI recommendations.
-
-    </div>
-
-    </div>
-    """, unsafe_allow_html=True)
-
+    with p6:
+        st.success("06\n\n📥 Export")
 
 # ============================================================
-# AI MATCHING PAGE
+# AI MATCHING
 # ============================================================
 
-elif page == "🔍 AI Matching":
+elif page == "AI Matching":
 
-    st.markdown(
-        '<div class="section-title">AI Matching Engine</div>',
-        unsafe_allow_html=True
+    st.title("🔍 AI Matching Explorer")
+
+    st.write(
+        "Explore AI-generated material similarity "
+        "and the evidence behind each recommendation."
     )
 
-    st.markdown(
-        '<div class="section-subtitle">'
-        'Explore how the AI evaluates material similarity across CPSEs.'
-        '</div>',
-        unsafe_allow_html=True
-    )
+    m1, m2, m3 = st.columns(3)
 
-    # Summary
+    with m1:
+        st.metric(
+            "Total Comparisons",
+            total_matches
+        )
 
-    a, b, c = st.columns(3)
-
-    with a:
-
+    with m2:
         st.metric(
             "High Confidence",
             high_matches
         )
 
-    with b:
-
+    with m3:
         st.metric(
             "Review Required",
             review_matches
         )
 
-    with c:
-
-        st.metric(
-            "Low Confidence",
-            low_matches
-        )
-
-
     st.divider()
-
-    # Filters
 
     f1, f2, f3 = st.columns(3)
 
     with f1:
 
-        cpse_filter = st.multiselect(
-            "CPSE",
-            sorted(
-                set(
-                    matches_df["cpse_1"]
-                )
-                |
-                set(
-                    matches_df["cpse_2"]
-                )
+        cpse_options = sorted(
+            set(
+                matches_df["cpse_1"]
+                .dropna()
+                .astype(str)
             )
+            |
+            set(
+                matches_df["cpse_2"]
+                .dropna()
+                .astype(str)
+            )
+        )
+
+        selected_cpse = st.multiselect(
+            "CPSE",
+            cpse_options
         )
 
     with f2:
 
-        confidence_filter = st.multiselect(
+        selected_confidence = st.multiselect(
             "Confidence",
-            sorted(
-                matches_df["confidence"]
-                .dropna()
-                .unique()
-            )
+            [
+                "HIGH CONFIDENCE",
+                "REVIEW REQUIRED",
+                "LOW CONFIDENCE"
+            ]
         )
 
     with f3:
 
-        category_filter = st.multiselect(
-            "Category",
-            sorted(
-                matches_df["category"]
-                .dropna()
-                .unique()
-            )
+        category_options = sorted(
+            matches_df["category"]
+            .dropna()
+            .astype(str)
+            .unique()
         )
 
+        selected_category = st.multiselect(
+            "Category",
+            category_options
+        )
 
     filtered = matches_df.copy()
 
-
-    if cpse_filter:
+    if selected_cpse:
 
         filtered = filtered[
-            filtered["cpse_1"].isin(cpse_filter)
+            filtered["cpse_1"]
+            .astype(str)
+            .isin(selected_cpse)
             |
-            filtered["cpse_2"].isin(cpse_filter)
+            filtered["cpse_2"]
+            .astype(str)
+            .isin(selected_cpse)
         ]
 
-
-    if confidence_filter:
+    if selected_confidence:
 
         filtered = filtered[
-            filtered["confidence"].isin(
-                confidence_filter
-            )
+            filtered["confidence"]
+            .isin(selected_confidence)
         ]
 
-
-    if category_filter:
+    if selected_category:
 
         filtered = filtered[
-            filtered["category"].isin(
-                category_filter
-            )
+            filtered["category"]
+            .astype(str)
+            .isin(selected_category)
         ]
 
-
-    st.markdown(
-        f"**Showing {len(filtered)} AI comparisons**"
+    st.write(
+        f"Showing {len(filtered)} comparisons"
     )
 
-
-    display_columns = [
+    columns = [
         "cpse_1",
         "material_code_1",
-        "material_description_1",
         "cpse_2",
         "material_code_2",
-        "material_description_2",
         "category",
         "semantic_score",
         "attribute_score",
         "lexical_score",
         "hybrid_score",
-        "confidence",
-        "conflicts"
+        "confidence"
+    ]
+
+    columns = [
+        c for c in columns
+        if c in filtered.columns
     ]
 
     st.dataframe(
-        filtered[
-            display_columns
-        ],
-        use_container_width=True,
+        filtered[columns],
+        width="stretch",
         hide_index=True
     )
 
+    if len(filtered) > 0:
+
+        st.divider()
+
+        st.subheader(
+            "Match Evidence"
+        )
+
+        selected_index = st.selectbox(
+            "Select comparison",
+            filtered.index,
+            format_func=lambda x:
+            f"{filtered.loc[x, 'material_code_1']} ↔ "
+            f"{filtered.loc[x, 'material_code_2']}"
+        )
+
+        row = filtered.loc[selected_index]
+
+        a, b = st.columns(2)
+
+        with a:
+
+            st.markdown(
+                "### Source Material 1"
+            )
+
+            st.info(
+                f"""
+CPSE: {row["cpse_1"]}
+
+Material Code: {row["material_code_1"]}
+
+Description:
+{row["material_description_1"]}
+"""
+            )
+
+        with b:
+
+            st.markdown(
+                "### Source Material 2"
+            )
+
+            st.info(
+                f"""
+CPSE: {row["cpse_2"]}
+
+Material Code: {row["material_code_2"]}
+
+Description:
+{row["material_description_2"]}
+"""
+            )
+
+        st.subheader(
+            "AI Scoring"
+        )
+
+        s1, s2, s3, s4 = st.columns(4)
+
+        with s1:
+            st.metric(
+                "Semantic",
+                f"{row['semantic_score']:.3f}"
+            )
+
+        with s2:
+            st.metric(
+                "Attributes",
+                f"{row['attribute_score']:.3f}"
+            )
+
+        with s3:
+            st.metric(
+                "Lexical",
+                f"{row['lexical_score']:.3f}"
+            )
+
+        with s4:
+            st.metric(
+                "Hybrid",
+                f"{row['hybrid_score']:.3f}"
+            )
+
+        st.subheader(
+            "AI Decision"
+        )
+
+        confidence = row["confidence"]
+
+        if confidence == "HIGH CONFIDENCE":
+
+            st.success(
+                "🟢 HIGH CONFIDENCE"
+            )
+
+        elif confidence == "REVIEW REQUIRED":
+
+            st.warning(
+                "🟡 REVIEW REQUIRED"
+            )
+
+        else:
+
+            st.error(
+                "🔴 LOW CONFIDENCE"
+            )
+
+        st.info(
+            row.get(
+                "explanation",
+                "No explanation available."
+            )
+        )
 
 # ============================================================
-# HARMONIZATION PAGE
+# HARMONIZATION
 # ============================================================
 
-elif page == "🧩 Harmonization":
+elif page == "Harmonization":
 
-    st.markdown(
-        '<div class="section-title">Material Harmonization</div>',
-        unsafe_allow_html=True
+    st.title(
+        "🧩 Material Harmonization"
     )
 
-    st.markdown(
-        '<div class="section-subtitle">'
-        'AI-generated prototype canonical material groups.'
-        '</div>',
-        unsafe_allow_html=True
+    st.write(
+        "Prototype canonical material groups generated "
+        "from high-confidence AI matches."
     )
 
+    h1, h2, h3 = st.columns(3)
 
-    # Search
+    with h1:
+        st.metric(
+            "Canonical Groups",
+            total_groups
+        )
+
+    with h2:
+        st.metric(
+            "Multi-Source Groups",
+            review_groups
+        )
+
+    with h3:
+        st.metric(
+            "Pending Review",
+            pending_reviews
+        )
+
+    st.divider()
 
     search = st.text_input(
-        "🔎 Search material, category, CPSE or canonical code"
+        "🔎 Search canonical groups",
+        placeholder="Search material, category, code or CPSE..."
     )
 
+    groups = master_df.copy()
 
-    harmonized = master_df[
-        master_df["source_material_count"] > 1
-    ].copy()
+    if "source_material_count" in groups.columns:
 
+        groups = groups[
+            groups["source_material_count"] > 1
+        ]
 
     if search:
 
-        search_lower = search.lower()
-
         mask = (
-            harmonized.astype(str)
+            groups
+            .astype(str)
             .apply(
-                lambda col:
-                col.str.lower().str.contains(
-                    search_lower,
+                lambda x:
+                x.str.contains(
+                    search,
+                    case=False,
                     na=False
                 )
             )
             .any(axis=1)
         )
 
-        harmonized = harmonized[mask]
+        groups = groups[mask]
 
-
-    st.markdown(
-        f"**{len(harmonized)} harmonized groups found**"
+    st.write(
+        f"{len(groups)} harmonized groups found."
     )
 
+    for _, row in groups.iterrows():
 
-    for _, row in harmonized.iterrows():
+        canonical = row.get(
+            "canonical_material_code",
+            "N/A"
+        )
 
-        with st.container():
+        category = row.get(
+            "category",
+            "N/A"
+        )
+
+        material = row.get(
+            "material",
+            "N/A"
+        )
+
+        size = row.get(
+            "size",
+            "N/A"
+        )
+
+        grade = row.get(
+            "grade",
+            "N/A"
+        )
+
+        count = row.get(
+            "source_material_count",
+            0
+        )
+
+        with st.container(border=True):
 
             st.markdown(
-                f"""
-                <div class="card">
+                f"### 🔹 {canonical}"
+            )
 
-                <div class="small-label">
-                Prototype Canonical Material Code
-                </div>
+            st.write(
+                f"**Category:** {category}"
+            )
 
-                <div style="
-                    font-size:20px;
-                    font-weight:700;
-                    color:#315EA8;
-                    margin:5px 0 15px 0;
-                ">
-                {row['prototype_canonical_material_code']}
-                </div>
+            st.write(
+                f"**Material:** {material}"
+            )
 
-                <div class="card-text">
+            c1, c2, c3 = st.columns(3)
 
-                <b>Category:</b>
-                {row['canonical_category']}
+            with c1:
+                st.write(
+                    f"**Size:** {size}"
+                )
 
-                &nbsp;&nbsp; | &nbsp;&nbsp;
+            with c2:
+                st.write(
+                    f"**Grade:** {grade}"
+                )
 
-                <b>Material:</b>
-                {row['canonical_material']}
+            with c3:
+                st.write(
+                    f"**Source Records:** {count}"
+                )
 
-                &nbsp;&nbsp; | &nbsp;&nbsp;
-
-                <b>Size:</b>
-                {row['canonical_size']}
-
-                &nbsp;&nbsp; | &nbsp;&nbsp;
-
-                <b>Grade:</b>
-                {row['canonical_grade']}
-
-                <br><br>
-
-                <b>Source Materials:</b>
-                {row['source_material_count']}
-
-                &nbsp;&nbsp; | &nbsp;&nbsp;
-
-                <b>CPSEs:</b>
-                {row['source_cpses']}
-
-                </div>
-
-                </div>
-                """,
-                unsafe_allow_html=True
+            st.write(
+                f"**CPSEs:** "
+                f"{row.get('source_cpses', 'N/A')}"
             )
 
             with st.expander(
-                "View source materials and AI recommendation"
+                "View source evidence"
             ):
 
                 st.write(
-                    "**Source Material Codes**"
-                )
-
-                st.info(
-                    row["source_material_codes"]
+                    "**Material Codes:**"
                 )
 
                 st.write(
-                    "**Original Descriptions**"
+                    row.get(
+                        "source_material_codes",
+                        "N/A"
+                    )
+                )
+
+                st.write(
+                    "**Original Descriptions:**"
+                )
+
+                st.write(
+                    row.get(
+                        "source_descriptions",
+                        "N/A"
+                    )
+                )
+
+                st.write(
+                    "**AI Recommendation:**"
                 )
 
                 st.info(
-                    row["source_descriptions"]
+                    row.get(
+                        "ai_recommendation",
+                        "N/A"
+                    )
                 )
 
-                st.markdown(
-                    f"""
-                    <div class="ai-box">
-
-                    <div class="ai-title">
-                    🧠 AI Recommendation
-                    </div>
-
-                    <div class="ai-text">
-                    {row['ai_recommendation']}
-                    </div>
-
-                    </div>
-                    """,
-                    unsafe_allow_html=True
-                )
-
-
 # ============================================================
-# HUMAN REVIEW PAGE
+# HUMAN REVIEW
 # ============================================================
 
-elif page == "👤 Human Review":
+elif page == "Human Review":
 
-    st.markdown(
-        '<div class="section-title">Human-in-the-Loop Review</div>',
-        unsafe_allow_html=True
+    st.title(
+        "👤 Human-in-the-Loop Review"
     )
 
-    st.markdown(
-        '<div class="section-subtitle">'
-        'Review AI recommendations before they become part of the standardized master.'
-        '</div>',
-        unsafe_allow_html=True
+    st.write(
+        "Review AI recommendations before final standardization."
     )
-
-
-    pending = review_df[
-        review_df["human_decision"] == "PENDING"
-    ].copy()
-
-
-    approved = review_df[
-        review_df["human_decision"] == "APPROVED"
-    ]
-
-    rejected = review_df[
-        review_df["human_decision"] == "REJECTED"
-    ]
-
 
     r1, r2, r3 = st.columns(3)
 
     with r1:
-
         st.metric(
             "Pending",
-            len(pending)
+            pending_reviews
         )
 
     with r2:
-
         st.metric(
             "Approved",
-            len(approved)
+            approved_reviews
         )
 
     with r3:
-
         st.metric(
             "Rejected",
-            len(rejected)
+            rejected_reviews
         )
-
 
     st.divider()
 
+    pending_df = review_df[
+        review_df["human_decision"]
+        == "PENDING"
+    ].copy()
 
-    if len(pending) == 0:
+    if pending_df.empty:
 
         st.success(
-            "🎉 No pending material groups require review."
+            "🎉 No pending reviews!"
         )
 
     else:
 
         selected_code = st.selectbox(
-            "Select a material group to review",
-            pending[
-                "prototype_canonical_material_code"
-            ].tolist()
+            "Select canonical material group",
+            pending_df[
+                "canonical_material_code"
+            ].astype(str).tolist()
         )
 
-
-        row = pending[
-            pending[
-                "prototype_canonical_material_code"
-            ] == selected_code
+        row = pending_df[
+            pending_df[
+                "canonical_material_code"
+            ].astype(str)
+            == selected_code
         ].iloc[0]
 
-
-        st.markdown(
-            '<div class="review-card">',
-            unsafe_allow_html=True
+        st.subheader(
+            f"Review: {selected_code}"
         )
 
+        c1, c2 = st.columns(2)
 
-        st.markdown(
-            f"""
-            <div class="small-label">
-            AI GENERATED CANONICAL GROUP
-            </div>
+        with c1:
 
-            <div style="
-                font-size:25px;
-                font-weight:700;
-                color:#315EA8;
-                margin:7px 0 20px 0;
-            ">
-            {row['prototype_canonical_material_code']}
-            </div>
-            """,
-            unsafe_allow_html=True
+            st.write(
+                f"**Category:** "
+                f"{row.get('canonical_category', 'N/A')}"
+            )
+
+            st.write(
+                f"**Material:** "
+                f"{row.get('canonical_material', 'N/A')}"
+            )
+
+            st.write(
+                f"**Size:** "
+                f"{row.get('canonical_size', 'N/A')}"
+            )
+
+            st.write(
+                f"**Grade:** "
+                f"{row.get('canonical_grade', 'N/A')}"
+            )
+
+        with c2:
+
+            st.write(
+                f"**Source Count:** "
+                f"{row.get('source_material_count', 'N/A')}"
+            )
+
+            st.write(
+                f"**CPSEs:** "
+                f"{row.get('source_cpses', 'N/A')}"
+            )
+
+        st.divider()
+
+        st.subheader(
+            "Source Evidence"
         )
 
-
-        col1, col2, col3, col4 = st.columns(4)
-
-
-        with col1:
-
-            st.markdown(
-                f"""
-                <div class="small-label">Category</div>
-                <div class="small-value">
-                {row['canonical_category']}
-                </div>
-                """,
-                unsafe_allow_html=True
-            )
-
-
-        with col2:
-
-            st.markdown(
-                f"""
-                <div class="small-label">Material</div>
-                <div class="small-value">
-                {row['canonical_material']}
-                </div>
-                """,
-                unsafe_allow_html=True
-            )
-
-
-        with col3:
-
-            st.markdown(
-                f"""
-                <div class="small-label">Size</div>
-                <div class="small-value">
-                {row['canonical_size']}
-                </div>
-                """,
-                unsafe_allow_html=True
-            )
-
-
-        with col4:
-
-            st.markdown(
-                f"""
-                <div class="small-label">Grade</div>
-                <div class="small-value">
-                {row['canonical_grade']}
-                </div>
-                """,
-                unsafe_allow_html=True
-            )
-
-
-        st.markdown("<br>", unsafe_allow_html=True)
-
-
-        st.write("### Source Material Evidence")
-
-
-        source_codes = str(
-            row["source_material_codes"]
-        ).split(" | ")
-
-
-        descriptions = str(
-            row["source_descriptions"]
-        ).split(" | ")
-
-
-        source_table = []
-
-
-        for i in range(
-            min(
-                len(source_codes),
-                len(descriptions)
-            )
-        ):
-
-            code_parts = source_codes[i].split(":")
-
-            if len(code_parts) >= 2:
-
-                cpse = code_parts[0]
-
-                code = ":".join(
-                    code_parts[1:]
-                )
-
-            else:
-
-                cpse = ""
-
-                code = source_codes[i]
-
-
-            source_table.append({
-
-                "CPSE": cpse,
-
-                "Material Code": code,
-
-                "Original Description":
-                    descriptions[i]
-            })
-
-
-        st.dataframe(
-            pd.DataFrame(source_table),
-            use_container_width=True,
-            hide_index=True
+        st.write(
+            "**Material Codes**"
         )
 
-
-        st.markdown(
-            f"""
-            <div class="ai-box">
-
-            <div class="ai-title">
-            🧠 Why AI recommends harmonization
-            </div>
-
-            <div class="ai-text">
-            {row['ai_recommendation']}
-            <br><br>
-            The reviewer should verify that the source materials
-            represent the same procurement item and that their
-            specifications are compatible.
-            </div>
-
-            </div>
-            """,
-            unsafe_allow_html=True
-        )
-
-
-        st.markdown("<br>", unsafe_allow_html=True)
-
-
-        comment = st.text_area(
-            "Reviewer comment",
-            placeholder=(
-                "Example: Specifications are equivalent "
-                "across the listed CPSEs."
+        st.info(
+            row.get(
+                "source_material_codes",
+                "N/A"
             )
         )
 
+        st.write(
+            "**Original Descriptions**"
+        )
+
+        st.info(
+            row.get(
+                "source_descriptions",
+                "N/A"
+            )
+        )
+
+        st.subheader(
+            "🤖 AI Recommendation"
+        )
+
+        st.info(
+            row.get(
+                "ai_recommendation",
+                "No recommendation available."
+            )
+        )
 
         reviewer = st.text_input(
-            "Reviewer name / ID",
-            placeholder="Enter reviewer name"
+            "Reviewer Name / ID"
         )
 
+        comment = st.text_area(
+            "Review Comment",
+            placeholder="Explain your decision..."
+        )
 
         b1, b2, b3 = st.columns(3)
 
+        if "review_decision_message" not in st.session_state:
 
-        def save_decision(
-            decision
-        ):
+            st.session_state.review_decision_message = ""
 
-            global review_df
+        def save_review(decision):
+
+            mask = (
+                review_df[
+                    "canonical_material_code"
+                ].astype(str)
+                == selected_code
+            )
 
             review_df.loc[
-                review_df[
-                    "prototype_canonical_material_code"
-                ] == selected_code,
+                mask,
                 "human_decision"
             ] = decision
 
-            review_df.loc[
-                review_df[
-                    "prototype_canonical_material_code"
-                ] == selected_code,
-                "reviewer"
-            ] = reviewer
+            if "reviewer" in review_df.columns:
 
-            review_df.loc[
-                review_df[
-                    "prototype_canonical_material_code"
-                ] == selected_code,
-                "review_comment"
-            ] = comment
+                review_df.loc[
+                    mask,
+                    "reviewer"
+                ] = reviewer
 
-            review_df.loc[
-                review_df[
-                    "prototype_canonical_material_code"
-                ] == selected_code,
-                "review_timestamp"
-            ] = datetime.now().strftime(
-                "%Y-%m-%d %H:%M:%S"
-            )
+            if "review_comment" in review_df.columns:
+
+                review_df.loc[
+                    mask,
+                    "review_comment"
+                ] = comment
+
+            if "review_timestamp" in review_df.columns:
+
+                review_df.loc[
+                    mask,
+                    "review_timestamp"
+                ] = datetime.now().strftime(
+                    "%Y-%m-%d %H:%M:%S"
+                )
 
             review_df.to_csv(
                 REVIEW_FILE,
@@ -1239,192 +1097,155 @@ elif page == "👤 Human Review":
 
             st.cache_data.clear()
 
-            st.success(
-                f"Decision recorded: {decision}"
-            )
-
-            st.rerun()
-
-
         with b1:
 
             if st.button(
                 "✅ APPROVE",
-                use_container_width=True
+                width="stretch"
             ):
 
-                save_decision(
+                save_review(
                     "APPROVED"
                 )
 
+                st.success(
+                    "Material group approved."
+                )
+
+                st.rerun()
 
         with b2:
 
             if st.button(
                 "❌ REJECT",
-                use_container_width=True
+                width="stretch"
             ):
 
-                save_decision(
+                save_review(
                     "REJECTED"
                 )
 
+                st.warning(
+                    "Material group rejected."
+                )
+
+                st.rerun()
 
         with b3:
 
             if st.button(
                 "⏭️ SKIP",
-                use_container_width=True
+                width="stretch"
             ):
 
-                save_decision(
-                    "SKIPPED"
+                st.info(
+                    "Review skipped. Decision remains pending."
                 )
 
-
-        st.markdown(
-            "</div>",
-            unsafe_allow_html=True
-        )
-
-
 # ============================================================
-# EXPORT PAGE
+# EXPORT
 # ============================================================
 
-elif page == "📥 Export":
+elif page == "Export":
 
-    st.markdown(
-        '<div class="section-title">Export Standardized Master</div>',
-        unsafe_allow_html=True
+    st.title(
+        "📥 Export Standardized Master"
     )
 
-    st.markdown(
-        '<div class="section-subtitle">'
-        'Download AI-generated harmonization results and human review decisions.'
-        '</div>',
-        unsafe_allow_html=True
+    st.write(
+        "Download prototype harmonization results "
+        "and the human-review audit trail."
     )
-
-
-    # Approval statistics
-
-    approved_count = len(
-        review_df[
-            review_df["human_decision"] == "APPROVED"
-        ]
-    )
-
-    rejected_count = len(
-        review_df[
-            review_df["human_decision"] == "REJECTED"
-        ]
-    )
-
-    pending_count = len(
-        review_df[
-            review_df["human_decision"] == "PENDING"
-        ]
-    )
-
 
     e1, e2, e3 = st.columns(3)
-
 
     with e1:
 
         st.metric(
             "Approved Groups",
-            approved_count
+            approved_reviews
         )
-
 
     with e2:
 
         st.metric(
             "Rejected Groups",
-            rejected_count
+            rejected_reviews
         )
-
 
     with e3:
 
         st.metric(
             "Pending Groups",
-            pending_count
+            pending_reviews
         )
-
 
     st.divider()
 
-
-    st.markdown(
-        """
-        <div class="card">
-
-        <div class="card-title">
-        📦 Prototype Standardized Material Master
-        </div>
-
-        <div class="card-text">
-        This export contains the AI-generated prototype canonical
-        material groups together with their source CPSE information.
-        It is intended for demonstration and validation purposes,
-        not as an official CPSE coding standard.
-        </div>
-
-        </div>
-        """,
-        unsafe_allow_html=True
+    st.subheader(
+        "📦 Prototype Canonical Material Master"
     )
 
+    st.warning(
+        "These canonical material codes are prototype "
+        "identifiers for demonstration and evaluation. "
+        "They are NOT official CPSE material codes."
+    )
 
-    master_csv = master_df.to_csv(
-        index=False
-    ).encode("utf-8")
+    st.dataframe(
+        master_df,
+        width="stretch",
+        hide_index=True
+    )
 
+    master_csv = (
+        master_df
+        .to_csv(index=False)
+        .encode("utf-8")
+    )
 
     st.download_button(
-        label="📥 Download Canonical Material Master",
+        "⬇️ Download Prototype Canonical Master",
         data=master_csv,
         file_name="prototype_canonical_material_master.csv",
         mime="text/csv",
-        use_container_width=True
+        width="stretch"
     )
 
+    st.divider()
 
-    review_csv = review_df.to_csv(
-        index=False
-    ).encode("utf-8")
+    st.subheader(
+        "📋 Human Review Audit Trail"
+    )
 
+    st.dataframe(
+        review_df,
+        width="stretch",
+        hide_index=True
+    )
+
+    review_csv = (
+        review_df
+        .to_csv(index=False)
+        .encode("utf-8")
+    )
 
     st.download_button(
-        label="📋 Download Human Review Audit Trail",
+        "⬇️ Download Human Review Audit Trail",
         data=review_csv,
         file_name="human_review_audit_trail.csv",
         mime="text/csv",
-        use_container_width=True
+        width="stretch"
     )
-
 
 # ============================================================
 # FOOTER
 # ============================================================
 
-st.markdown(
-    """
-    <div class="footer">
+st.divider()
 
-    AI Material Code Standardization • SIH 2026 Prototype
-
-    <br>
-
-    <span style="font-size:11px;">
-    AI-assisted recommendations • Explainable matching •
-    Human-in-the-loop validation
-    </span>
-
-    </div>
-    """,
-    unsafe_allow_html=True
+st.caption(
+    "🏭 CPSE Material Intelligence Platform • "
+    "AI Matching • Harmonization • Human-in-the-Loop • "
+    "SIH 2026 Prototype"
 )
